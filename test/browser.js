@@ -92,6 +92,32 @@ try {
   await page.locator('[data-agent="assistant"]').click();
   await page.getByRole('tab', { name: 'Доступ', exact: true }).click();
   check(await page.locator('[data-rule="1"] [name=effect]').inputValue() === 'force', 'Force survives a save/reopen roundtrip');
+  const sourceBeforeCopy = f.read('agents/assistant.md');
+  const sourceSettings = studio.state().agents.find(a => a.id === 'assistant').v2Settings;
+  await page.getByRole('tab', { name: 'Промпт', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Системный промпт', exact: true }).fill('Copied editor prompt\n');
+  await page.getByRole('button', { name: 'Копировать', exact: true }).waitFor({ timeout: 1000 });
+  await page.getByRole('button', { name: 'Копировать', exact: true }).click();
+  check(await page.locator('[name=id]').inputValue() === '' && await page.locator('[name=id]').getAttribute('readonly') === null, 'Copy opens a new agent with an editable empty ID');
+  check(await page.locator('#delete-agent').isHidden(), 'Unsaved copy cannot delete its source');
+  await page.getByRole('button', { name: 'В черновик' }).click();
+  check(await page.locator('#editor-error').isVisible(), 'Copied agent requires a new ID');
+  await page.locator('[name=id]').fill('assistant');
+  await page.getByRole('button', { name: 'В черновик' }).click();
+  check(await page.locator('#editor-error').textContent() === 'Этот ID уже занят', 'Copy cannot overwrite an existing agent');
+  await page.locator('[name=id]').fill('assistant-copy');
+  await page.getByRole('button', { name: 'В черновик' }).click();
+  check(!fs.existsSync(f.root + '/agents/assistant-copy.md') && f.read('agents/assistant.md') === sourceBeforeCopy, 'Copy stays in draft and leaves its source untouched');
+  await page.locator('#save').click();
+  await page.locator('#confirm-action').click();
+  await page.locator('#confirm').waitFor({ state: 'hidden' });
+  assert.deepEqual(studio.state().agents.find(a => a.id === 'assistant-copy').v2Settings, sourceSettings);
+  checks++;
+  check(markdown(f.read('agents/assistant-copy.md')).prompt === 'Copied editor prompt\n', 'Copy retains the current editor prompt');
+  check(f.read('agents/assistant.md') === sourceBeforeCopy, 'Saving a copy does not modify the source');
+  await page.locator('[data-agent="general"]').click();
+  await page.getByRole('button', { name: 'Копировать', exact: true }).click();
+  check(await page.locator('[name=mode]').inputValue() === 'subagent', 'Copying a built-in preserves its effective role');
   await page.locator('#editor [data-close="editor"]').first().click();
 
   await page.getByRole('button', { name: 'Новый агент', exact: false }).click();
@@ -169,7 +195,7 @@ try {
   await page.screenshot({ path: screenshots + 'documents.png', fullPage: true });
 
   await page.locator('[data-view="agents"]').click();
-  for (const id of ['intecactor', 'build', 'plan']) {
+  for (const id of ['intecactor', 'assistant-copy', 'build', 'plan']) {
     await page.locator(`[data-agent="${id}"]`).click();
     page.once('dialog', dialog => dialog.accept());
     await page.getByRole('button', { name: 'Удалить агента', exact: true }).click();

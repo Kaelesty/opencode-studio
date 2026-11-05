@@ -33,6 +33,29 @@ test('editing an inline legacy agent writes only a native V2 entry', t => {
   assert.equal(config.agents.review.maxSteps, undefined);
 });
 
+test('copying an agent preserves masked settings server-side without changing the source', t => {
+  const { studio, put, save, read } = setup(t);
+  put('agents/template.md', '---\nmode: subagent\nrequest:\n  apiKey: fixture-template-secret\n---\nTemplate prompt\n');
+  const original = read('agents/template.md');
+  const template = studio.state().agents.find(a => a.id === 'template');
+  assert.notEqual(template.v2Settings.request.apiKey, 'fixture-template-secret');
+  save([{ type: 'agent', id: 'template-copy', create: true, copyFrom: 'template', settings: template.v2Settings, prompt: template.prompt }]);
+  const copy = markdown(read('agents/template-copy.md'));
+  assert.equal(copy.settings.request.apiKey, 'fixture-template-secret');
+  assert.equal(copy.settings.mode, 'subagent');
+  assert.equal(copy.prompt, template.prompt);
+  assert.equal(read('agents/template.md'), original);
+});
+
+test('agent copying rejects missing templates and existing destinations without writes', t => {
+  const { studio, save } = setup(t);
+  const before = studio.state().revision;
+  assert.throws(() => save([{ type: 'agent', id: 'copy', create: true, copyFrom: 'missing', settings: {}, prompt: '' }]), /шаблон/);
+  assert.throws(() => save([{ type: 'agent', id: 'assistant', create: true, copyFrom: 'plan', settings: {}, prompt: '' }]), /уже существует/);
+  assert.throws(() => save([{ type: 'agent', id: 'assistant', copyFrom: 'plan', settings: {}, prompt: '' }]), /нового агента/);
+  assert.equal(studio.state().revision, before);
+});
+
 test('model picker patches migrate the selected legacy provider, retaining credentials and other models', t => {
   const { put, save, read } = setup(t);
   put('opencode.json', JSON.stringify({ provider: { old: { npm: '@ai-sdk/openai-compatible', options: { apiKey: 'fixture-provider-key', baseURL: 'https://example.invalid' }, models: { coder: { name: 'Coder', limit: { context: 65536, output: 4096 }, options: { reasoningEffort: 'medium' }, tool_call: true, modalities: { input: ['text'], output: ['text'] }, cost: { input: 1, output: 2, cache_read: 0.1, cache_write: 0.2 }, variants: { high: { reasoningEffort: 'high' } } }, other: { name: 'Other' } } } } }));

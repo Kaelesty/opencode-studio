@@ -207,10 +207,10 @@ async function loadCatalog(refresh = false) {
   } catch (error) { catalogError = error.message; throw error; }
 }
 
-async function openAgent(id) {
+async function openAgent(id, template) {
   if (!catalogLoaded) { try { await loadCatalog(); } catch { /* Keep prompt and access editing available while offline. */ } }
-  const agent = id ? allAgents().find(a => a.id === id) : { id: '', settings: { mode: 'primary', description: '' }, prompt: '', legacy: false, sources: [] };
-  editing = { type: 'agent', agent, create: !id, resetRequiredSkills: drafts.get('agent:' + id)?.resetRequiredSkills || false };
+  const agent = id ? allAgents().find(a => a.id === id) : { id: '', settings: template?.settings || { mode: 'primary', description: '' }, prompt: template?.prompt || '', legacy: false, sources: [] };
+  editing = { type: 'agent', agent, create: !id, copyFrom: template?.id || drafts.get('agent:' + id)?.copyFrom, resetRequiredSkills: drafts.get('agent:' + id)?.resetRequiredSkills || false };
   $('#editor-title').textContent = id || 'Новый агент';
   $('#editor-eyebrow').textContent = 'AGENT SETTINGS';
   $('#editor-submit').hidden = false;
@@ -221,7 +221,8 @@ async function openAgent(id) {
   const selectableModels = availableModels.filter(m => m.enabled !== false);
   const modelChoices = { '': 'Наследовать модель сессии', ...Object.fromEntries(selectableModels.map(m => [m.ref, `${m.name} · ${m.ref}`])), ...(base && !selectableModels.some(m => m.ref === base) ? { [base]: `${base} · сейчас недоступна` } : {}) };
   $('#editor-body').innerHTML = `
-    <div class="editor-source">${agent.sources?.length ? `Источник: <code>${escape(agent.sources.at(-1).file)}</code>${agent.sources.length > 1 ? ` · ${agent.sources.length} слоя, правки в последнем` : ''}` : agent.builtin ? 'Встроенный агент · сохранение создаст пользовательское переопределение' : 'Новый Markdown-агент в agents/'}</div>
+    <div class="editor-source">${agent.sources?.length ? `Источник: <code>${escape(agent.sources.at(-1).file)}</code>${agent.sources.length > 1 ? ` · ${agent.sources.length} слоя, правки в последнем` : ''}` : agent.builtin ? 'Встроенный агент · сохранение создаст пользовательское переопределение' : 'Новый Markdown-агент в agents/'}${id ? ' · <button type="button" id="copy-agent" class="button small-button">Копировать</button>' : ''}</div>
+    ${template ? `<div class="notice compact">Копия ${escape(template.id)}. Задай новый ID. Исходный агент не изменится; копируются текущие настройки редактора и промпт, не runtime-инструкции OpenCode.</div>` : ''}
     ${agent.forceConflict ? `<div id="force-conflict" class="notice warning compact">Права менялись вне Studio. Форсированные скиллы: ${escape((agent.requiredSkills || []).join(', '))}. Старое форсирование нужно явно сбросить перед сохранением.<button type="button" class="button small-button" id="reset-required">Сбросить старое форсирование</button></div>` : ''}
     ${agent.legacy ? `<div class="notice warning compact">При сохранении агент перейдёт в V2: права и ссылка модели будут преобразованы.${agent.migrationRemoved?.length ? ` Убираем неработающие legacy-поля: ${agent.migrationRemoved.map(escape).join(', ')}. Для reasoning выбери доступный вариант модели.` : ''}</div>` : ''}
     <div class="tabs" role="tablist" aria-label="Разделы настроек"><button type="button" role="tab" aria-selected="true" data-tab="general">Общее</button><button type="button" role="tab" aria-selected="false" data-tab="prompt">Промпт</button><button type="button" role="tab" aria-selected="false" data-tab="model">Модель</button><button type="button" role="tab" aria-selected="false" data-tab="permissions">Доступ</button><button type="button" role="tab" aria-selected="false" data-tab="advanced">Все поля</button></div>
@@ -313,6 +314,17 @@ async function openAgent(id) {
     } catch (error) { showEditorError('Некорректный JSON: ' + error.message); }
   });
   editing.sync = sync;
+  if ($('#copy-agent')) $('#copy-agent').onclick = async () => {
+    try {
+      const settings = sync();
+      if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('Настройки должны быть объектом');
+      settings.mode ||= mode(agent);
+      const template = { id: agent.id, settings, prompt: $('#agent-prompt').value };
+      $('#editor').close();
+      await openAgent(undefined, template);
+      $('[name=id]').focus();
+    } catch (error) { showEditorError(error.message); }
+  };
   if ($('#reset-required')) $('#reset-required').onclick = () => { editing.resetRequiredSkills = true; $('#force-conflict').textContent = 'Старое форсирование будет сброшено после «Сохранить». Текущие native-права сохранены в редакторе.'; };
   if ($('#runtime-prompt')) $('#runtime-prompt').onclick = async () => {
     $('#runtime-prompt').disabled = true;
@@ -371,7 +383,7 @@ $('#editor-form').onsubmit = event => {
       if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(id)) throw new Error('ID: латиница, цифры, дефис, подчёркивание; допустим team/name');
       if (editing.create && allAgents().some(a => a.id === id)) throw new Error('Этот ID уже занят');
       if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('Настройки должны быть объектом');
-      drafts.set(`agent:${id}`, { type: 'agent', id, settings, prompt: $('#agent-prompt').value, create: editing.create || drafts.get(`agent:${id}`)?.create || false, resetRequiredSkills: editing.resetRequiredSkills || false });
+      drafts.set(`agent:${id}`, { type: 'agent', id, settings, prompt: $('#agent-prompt').value, create: editing.create || drafts.get(`agent:${id}`)?.create || false, copyFrom: editing.copyFrom, resetRequiredSkills: editing.resetRequiredSkills || false });
     } else if (editing.type === 'model') {
       const patch = { ...editing.patch };
       $$('select', $('#editor-body')).forEach(input => {

@@ -75,8 +75,8 @@ function intro(eyebrow, title, subtitle, action = '') {
 
 function renderAgents() {
   const agents = allAgents();
-  const main = primaryIds.map(id => agents.find(a => a.id === id)).filter(Boolean);
-  const others = agents.filter(a => !primaryIds.includes(a.id));
+  const main = [...primaryIds.map(id => agents.find(a => a.id === id)).filter(Boolean), ...agents.filter(a => !primaryIds.includes(a.id))].filter(a => !a.settings.hidden && ['primary', 'all'].includes(mode(a)));
+  const others = agents.filter(a => !main.includes(a));
   $('#content').innerHTML = intro('YOUR AGENT WORKSPACE', 'Твой harness. Твои правила.', 'Промпты, модели и границы доступа — в одном пространстве.', '<button class="button primary" id="new-agent"><span>＋</span> Новый агент</button>') + `
     ${state.warnings.length ? `<div class="notice warning">${state.warnings.map(escape).join('<br>')}</div>` : ''}
     <div class="section-heading"><h2>Основные агенты <span class="count-pill">${main.length}</span></h2><span class="muted small">Твоя команда для ежедневной работы</span></div>

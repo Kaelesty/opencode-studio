@@ -145,7 +145,7 @@ opencode-studio --config ./test-config --history ./test-history
 
 ## Editing
 
-- Five main cards: assistant, ensemble, stable-duty, build, plan (when defined or built in).
+- Main cards include every visible primary/all agent, including custom agents. assistant, ensemble, stable-duty, build and plan appear first when applicable; subagents and hidden agents remain in the searchable catalog.
 - A searchable catalog for all other configured agents and V2 built-in/hidden agents.
 - Agent prompt, mode and visibility. Color is selected from a named palette; model and variant are selected from the current OpenCode runtime catalog. Unavailable existing selections are labelled, not silently replaced.
 - Ordered access-rule pickers for actions, resources and allow/ask/deny, with add/remove/reorder controls. Existing action/resource patterns and global permission patterns remain selectable. An advanced JSON editor is still available for uncommon agent fields.

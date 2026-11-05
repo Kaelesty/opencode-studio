@@ -95,17 +95,32 @@ try {
   await page.locator('#editor [data-close="editor"]').first().click();
 
   await page.getByRole('button', { name: 'Новый агент', exact: false }).click();
-  await page.getByRole('textbox', { name: 'ID агента', exact: true }).fill('browser-agent');
+  await page.getByRole('textbox', { name: 'ID агента', exact: true }).fill('intecactor');
   await page.getByRole('textbox', { name: 'Описание', exact: true }).fill('Created in a real browser');
   await page.getByRole('tab', { name: 'Доступ', exact: true }).click();
   await page.getByRole('button', { name: '＋ Правило', exact: true }).click();
   await page.locator('[data-rule="0"] [name=action]').selectOption('edit');
   await page.locator('[data-rule="0"] [name=effect]').selectOption('deny');
   await page.getByRole('button', { name: 'В черновик' }).click();
+  check(await page.locator('.agent-card[data-agent="intecactor"]').count() === 1, 'Custom primary agent appears among main cards in draft');
+  check(await page.locator('.agent-row[data-agent="intecactor"]').count() === 0, 'Custom primary agent is not duplicated in other agents');
   await page.locator('#save').click();
   await page.locator('#confirm-action').click();
   await page.locator('#confirm').waitFor({ state: 'hidden' });
-  check(markdown(f.read('agents/browser-agent.md')).settings.permissions[0].effect === 'deny', 'New V2 agent saved');
+  check(markdown(f.read('agents/intecactor.md')).settings.permissions[0].effect === 'deny', 'New V2 agent saved');
+  await page.reload();
+  await page.getByRole('heading', { name: 'Твой harness. Твои правила.' }).waitFor();
+  check(await page.locator('.agent-card[data-agent="intecactor"]').count() === 1, 'Saved custom primary agent remains among main cards after reload');
+  for (const role of ['subagent', 'all']) {
+    await page.locator('[data-agent="intecactor"]').click();
+    await page.getByRole('combobox', { name: 'Роль', exact: true }).selectOption(role);
+    await page.getByRole('button', { name: 'В черновик' }).click();
+    check(await page.locator('.agent-card[data-agent="intecactor"]').count() === (role === 'all' ? 1 : 0), `Main cards follow the ${role} role in draft`);
+    check(await page.locator('.agent-row[data-agent="intecactor"]').count() === (role === 'subagent' ? 1 : 0), `Other agents follow the ${role} role in draft`);
+    await page.locator('#save').click();
+    await page.locator('#confirm-action').click();
+    await page.locator('#confirm').waitFor({ state: 'hidden' });
+  }
 
   await page.locator('[data-view="models"]').click();
   await page.locator('[data-model="example/coder"]').click();
@@ -154,7 +169,7 @@ try {
   await page.screenshot({ path: screenshots + 'documents.png', fullPage: true });
 
   await page.locator('[data-view="agents"]').click();
-  for (const id of ['browser-agent', 'build', 'plan']) {
+  for (const id of ['intecactor', 'build', 'plan']) {
     await page.locator(`[data-agent="${id}"]`).click();
     page.once('dialog', dialog => dialog.accept());
     await page.getByRole('button', { name: 'Удалить агента', exact: true }).click();
@@ -162,7 +177,7 @@ try {
   await page.locator('#save').click();
   await page.locator('#confirm-action').click();
   await page.locator('#confirm').waitFor({ state: 'hidden' });
-  check(!fs.existsSync(f.root + '/agents/browser-agent.md'), 'Custom agent deletion');
+  check(!fs.existsSync(f.root + '/agents/intecactor.md'), 'Custom agent deletion');
   check(jsonc(f.read('opencode.jsonc')).agents.build.disabled === true && jsonc(f.read('opencode.jsonc')).agents.plan.disabled === true, 'Built-in build and plan disabled in V2');
   check(await page.locator('[data-agent="build"], [data-agent="plan"]').count() === 0, 'Deleted built-ins removed from UI');
 
@@ -172,7 +187,7 @@ try {
   await page.locator('#confirm-action').click();
   await page.locator('#confirm').waitFor({ state: 'hidden' });
   check(markdown(f.read('agents/assistant.md')).prompt === 'Original prompt\n', 'Full rollback restores original prompt');
-  check(!fs.existsSync(f.root + '/agents/browser-agent.md'), 'Full rollback removes newly created agent');
+  check(!fs.existsSync(f.root + '/agents/intecactor.md'), 'Full rollback removes newly created agent');
   check(jsonc(f.read('opencode.jsonc')).default_agent === 'assistant', 'Full rollback restores root configuration');
   check(studio.state().history[0].kind === 'restore', 'Rollback itself is revisioned');
   check(markdown(f.read('skills/editable/SKILL.md')).prompt === 'Original skill prompt\n', 'Full rollback restores skill prompt');

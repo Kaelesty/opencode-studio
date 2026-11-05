@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>OpenCode Studio</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="OpenCode Studio"><img src="/favicon.svg" alt=""><span>opencode<span class="brand-sub">STUDIO</span></span></a>
+      <div class="workspace"><span class="status-dot"></span><div>Личный harness<small>Локальная конфигурация</small></div><span class="local-tag">LOCAL</span></div>
+      <p class="nav-label">WORKSPACE</p>
+      <nav aria-label="Основная навигация">
+        <button data-view="agents" class="nav-item active"><span class="nav-icon">◈</span>Агенты<span id="agent-count" class="nav-count">—</span></button>
+        <button data-view="models" class="nav-item"><span class="nav-icon">◉</span>Модели</button>
+        <button data-view="documents" class="nav-item"><span class="nav-icon">▤</span>Скиллы и правила</button>
+        <button data-view="config" class="nav-item"><span class="nav-icon">⌘</span>Конфигурация</button>
+        <button data-view="history" class="nav-item"><span class="nav-icon">◷</span>История<span id="history-count" class="nav-count">0</span></button>
+      </nav>
+      <div class="sidebar-bottom"><div class="safe-icon">↶</div><strong>Можно экспериментировать</strong><p>Каждое сохранение — новая точка истории. Любую можно восстановить.</p><span class="connection"><span class="status-dot"></span>Только на этом компьютере</span></div>
+    </aside>
+    <main>
+      <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong id="crumb">Агенты</strong></div><div class="topbar-actions"><span id="dirty-status" class="muted">Все изменения сохранены</span><button id="reload" class="icon-button" title="Перечитать конфигурацию" aria-label="Перечитать конфигурацию">↻</button><button id="theme" class="icon-button" title="Сменить тему" aria-label="Сменить тему">◐</button></div></header>
+      <section id="content" class="content" aria-live="polite"><div class="empty-state">Подключение к локальной конфигурации…</div></section>
+    </main>
+  </div>
+  <dialog id="editor" class="editor-dialog" aria-labelledby="editor-title">
+    <form id="editor-form" novalidate>
+      <header class="dialog-header"><div><span class="eyebrow" id="editor-eyebrow">AGENT SETTINGS</span><h2 id="editor-title">Настройки агента</h2></div><button type="button" class="icon-button" data-close="editor" aria-label="Закрыть редактор">✕</button></header>
+      <div id="editor-body" class="dialog-body"></div>
+      <footer class="dialog-footer"><span id="editor-hint" class="muted">Изменения пока только в черновике</span><div><button type="button" id="delete-agent" class="button danger" hidden>Удалить агента</button><button type="button" class="button" data-close="editor">Отмена</button><button id="editor-submit" type="submit" class="button primary">В черновик <span>↗</span></button></div></footer>
+    </form>
+  </dialog>
+  <dialog id="confirm" class="confirm-dialog" aria-labelledby="confirm-title">
+    <form id="confirm-form"><header class="dialog-header"><div><span class="eyebrow">CONFIGURATION CHECKPOINT</span><h2 id="confirm-title">Сохранить изменения</h2></div><button type="button" class="icon-button" data-close="confirm" aria-label="Закрыть">✕</button></header><div id="confirm-body" class="dialog-body"></div><footer class="dialog-footer"><span class="muted">Локальный зашифрованный снимок</span><div><button type="button" class="button" data-close="confirm">Отмена</button><button id="confirm-action" type="submit" class="button primary">Сохранить</button></div></footer></form>
+  </dialog>
+  <div id="draft-bar" class="draft-bar" hidden><div class="draft-description"><span class="draft-dot"></span><strong id="draft-count"></strong><span class="muted">Ещё не применены к OpenCode</span></div><div><button id="discard" class="button subtle">Сбросить</button><button id="save" class="button primary">Сохранить <kbd>⌘ S</kbd></button></div></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

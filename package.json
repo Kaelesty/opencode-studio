@@ -1,0 +1,22 @@
+{
+  "name": "opencode-studio",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "A local, revisioned configuration studio for OpenCode",
+  "bin": { "opencode-studio": "./server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js",
+    "test:ui": "node test/browser.js",
+    "test:plugin": "node test/plugin.js"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "jsonc-parser": "3.3.1",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
